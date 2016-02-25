@@ -1,0 +1,4 @@
+/home/alex/Documents/kafka-connect-binary/src/main/java/org/apache/kafka/connect/binary/BinarySourceConnector.java
+/home/alex/Documents/kafka-connect-binary/src/main/java/org/apache/kafka/connect/binary/DirWatcher.java
+/home/alex/Documents/kafka-connect-binary/src/main/java/org/apache/kafka/connect/binary/BinarySourceTask.java
+/home/alex/Documents/kafka-connect-binary/src/main/java/org/apache/kafka/connect/binary/DirFilterWatcher.java
