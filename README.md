@@ -14,6 +14,9 @@ name=local-binary-source
 connector.class=org.apache.kafka.connect.binary.BinarySourceConnector
 tasks.max=1
 tmp.path=./tmp
+check.dir.ms=1000
+schema.name=filebinaryschema
+topic=file-binary
 ```
 
 # Configuration for Producer, Consumer and Broker
