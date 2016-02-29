@@ -1,12 +1,17 @@
 package org.apache.kafka.connect.binary;
 
-/**
- * Created by alex on 24.02.16.
- */
 import java.util.*;
 import java.io.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+
+/**
+ * DirWatcher is a TimerTask class that periodically watch changes on a
+ * defined directory. Every detected file is putted in a queue waiting
+ * to be sent to Kafka.
+ *
+ * @author Alex Piermatteo
+ */
 public abstract class DirWatcher extends TimerTask {
     private String path;
     private File filesArray [];
@@ -18,6 +23,13 @@ public abstract class DirWatcher extends TimerTask {
         this(path, "");
     }
 
+
+    /**
+     * Constructor of the class.
+     *
+     * @para path directory path to watch
+     * @para filter detect changes only for filtered extensions
+     **/
     public DirWatcher(String path, String filter) {
         this.path = path;
         dfw = new DirFilterWatcher(filter);
@@ -31,6 +43,10 @@ public abstract class DirWatcher extends TimerTask {
         }
     }
 
+
+    /**
+     * Run the thread.
+     */
     public final void run() {
         HashSet checkedFiles = new HashSet();
         filesArray = new File(path).listFiles(dfw);
@@ -63,6 +79,10 @@ public abstract class DirWatcher extends TimerTask {
         }
     }
 
+
+    /**
+     * Expose the files queue
+     */
     public ConcurrentLinkedQueue<File> getQueueFiles() {
         return queue_files;
     }

@@ -17,6 +17,13 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 
+
+/**
+ * BinarySourceTask is a Task that reads changes from a directory for storage
+ * new binary detected files in Kafka.
+ *
+ * @author Alex Piermatteo
+ */
 public class BinarySourceTask extends SourceTask {
     private final static Logger log = LoggerFactory.getLogger(BinarySourceTask.class);
 
@@ -26,18 +33,33 @@ public class BinarySourceTask extends SourceTask {
     private static Schema schema = null;
     private String schemaName;
     private String topic;
+    private String check_dir_ms;
     private Map<String, Object> offsets = new HashMap<>(0);
+
 
     @Override
     public String version() {
         return new BinarySourceConnector().version();
     }
 
+    /**
+     * Start the Task. Handles configuration parsing and one-time setup of the Task.
+     *
+     * @param props initial configuration
+     */
     @Override
     public void start(Map<String, String> props) {
         tmp_path = props.get(BinarySourceConnector.DIR_PATH);
         if(tmp_path == null)
             throw new ConnectException("config tmp.path null");
+        schemaName = props.get(BinarySourceConnector.SCHEMA_NAME);
+        if(schemaName == null)
+            throw new ConnectException("config schema.name null");
+        topic = props.get(BinarySourceConnector.TOPIC);
+        if(topic == null)
+            throw new ConnectException("config topic null");
+
+        check_dir_ms = props.get(BinarySourceConnector.CHCK_DIR_MS);
 
         task = new DirWatcher(tmp_path, "") {
             protected void onChange(File file, String action ) {
@@ -47,9 +69,6 @@ public class BinarySourceTask extends SourceTask {
             }
         };
 
-        schemaName = "filebinaryschema"; //map.get(SocketSourceConnector.SCHEMA_NAME);
-        topic = "filebinary"; //map.get(SocketSourceConnector.TOPIC);
-
         log.trace("Creating schema");
         schema = SchemaBuilder
                 .struct()
@@ -58,10 +77,16 @@ public class BinarySourceTask extends SourceTask {
                 .field("binary", Schema.OPTIONAL_BYTES_SCHEMA)
                 .build();
         Timer timer = new Timer();
-        timer.schedule( task , new Date(), 1000 );
-        //loadOffsets("connectorname", "partitionname");
+        timer.schedule( task , new Date(), Long.parseLong(check_dir_ms));
     }
 
+
+    /**
+     * Poll this BinarySourceTask for new records.
+     *
+     * @return a list of source records
+     * @throws InterruptedException
+     */
     @Override
     public List<SourceRecord> poll() throws InterruptException {
 
@@ -92,11 +117,13 @@ public class BinarySourceTask extends SourceTask {
         return records;
     }
 
+
+    /**
+     * Signal this SourceTask to stop.
+     */
     @Override
     public void stop() {
+        task.cancel();
     }
 
-    private void loadOffsets(String connector, String partition) {
-        offsets.putAll(context.offsetStorageReader().offset(Collections.singletonMap(connector, partition)));
-    }
 }

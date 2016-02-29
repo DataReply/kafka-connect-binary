@@ -1,7 +1,7 @@
 package org.apache.kafka.connect.binary;
 
 /**
- * Created by alex on 24.02.16.
+ * Created by Alex Piermatteo on 24.02.16.
  */
 import java.io.*;
 
