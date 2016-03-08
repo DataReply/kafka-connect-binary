@@ -18,15 +18,19 @@ import java.util.Map;
  * @author Alex Piermatteo
  */
 public class BinarySourceConnector extends SourceConnector {
+    public static final String USE_DIRWATCHER = "use.java.dirwatcher";
     public static final String DIR_PATH = "tmp.path";
     public static final String CHCK_DIR_MS = "check.dir.ms";
     public static final String SCHEMA_NAME = "schema.name";
     public static final String TOPIC = "topic";
+    public static final String FILE_PATH = "filename.path";
 
     private String tmp_path;
     private String check_dir_ms;
     private String schema_name;
     private String topic;
+    private String use_dirwatcher;
+    private String filename_path;
 
 
     /**
@@ -48,15 +52,32 @@ public class BinarySourceConnector extends SourceConnector {
      */
     @Override
     public void start(Map<String, String> props) {
-        tmp_path = props.get(DIR_PATH);
-        if(tmp_path == null || tmp_path.isEmpty())
-            throw new ConnectException("missing tmp.path");
+        if(use_dirwatcher == null || use_dirwatcher.isEmpty())
+            throw new ConnectException("missing use.java.dirwatcher");
         if(schema_name == null || schema_name.isEmpty())
             throw new ConnectException("missing schema.name");
         if(topic == null || topic.isEmpty())
             throw new ConnectException("missing topic");
-        if(check_dir_ms == null || check_dir_ms.isEmpty())
-            check_dir_ms = "1000";
+
+        if (use_dirwatcher == "true") {
+            tmp_path = props.get(DIR_PATH);
+            if(tmp_path == null || tmp_path.isEmpty())
+                throw new ConnectException("missing tmp.path");
+            if(check_dir_ms == null || check_dir_ms.isEmpty())
+                check_dir_ms = "1000";
+            if(filename_path == null || filename_path.isEmpty())
+                filename_path = "";
+        }
+        else if (use_dirwatcher == "false") {
+            tmp_path = props.get(DIR_PATH);
+            if(tmp_path == null || tmp_path.isEmpty())
+                tmp_path = "";
+            if(check_dir_ms == null || check_dir_ms.isEmpty())
+                check_dir_ms = "";
+            if(filename_path == null || filename_path.isEmpty())
+                throw new ConnectException("missing filename.path");
+        }
+
     }
 
 
@@ -83,8 +104,10 @@ public class BinarySourceConnector extends SourceConnector {
         ArrayList<Map<String, String>> configs = new ArrayList<>();
         for(int i = 0; i < maxTasks; i++) {
             Map<String, String> config = new HashMap<>();
+            config.put(USE_DIRWATCHER, use_dirwatcher);
             config.put(DIR_PATH, tmp_path);
             config.put(CHCK_DIR_MS, check_dir_ms);
+            config.put(FILE_PATH, filename_path);
             config.put(SCHEMA_NAME, schema_name);
             config.put(TOPIC, topic);
             configs.add(config);
