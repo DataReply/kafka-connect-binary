@@ -20,6 +20,7 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 /**
  * Created by Alex Piermatteo on 09.03.16.
@@ -73,6 +74,41 @@ public class BinarySourceTaskTest {
 
         Assert.assertEquals(data.length, bytes.length);
         task.stop();
+    }
+
+    @Test
+    public void multiple_test() throws Exception {
+
+        Integer numberOfFiles = new Random().nextInt(new Random().nextInt(10));
+        //compared file
+        File file = new File(TEST_PATH + "test-cmp.png");
+        byte[] data = null;
+        try {
+            //transform file to byte[]
+            Path path = Paths.get(file.getPath());
+            data = Files.readAllBytes(path);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+
+        for (int i = 0; i < numberOfFiles; i++) {
+            replay();
+            task.start(sourceProperties);
+            List<SourceRecord> records = task.poll();
+            Map<String, Object> map = SchemaUtils.toJsonMap((Struct) records.get(0).value());
+            byte[] bytes = (byte[]) map.get("binary");
+            FileOutputStream stream = new FileOutputStream(TEST_PATH + Integer.toString(i) + "_" + (String) map.get("name"));
+            try {
+                stream.write(bytes);
+            } finally {
+                stream.close();
+            }
+
+            Assert.assertEquals(data.length, bytes.length);
+            task.stop();
+        }
+
     }
 
     private void replay() {
