@@ -1,5 +1,0 @@
-org/apache/kafka/connect/binary/DirFilterWatcher.class
-org/apache/kafka/connect/binary/BinarySourceTask.class
-org/apache/kafka/connect/binary/BinarySourceConnector.class
-org/apache/kafka/connect/binary/BinarySourceTask$1.class
-org/apache/kafka/connect/binary/DirWatcher.class
