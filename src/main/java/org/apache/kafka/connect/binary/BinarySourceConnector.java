@@ -52,10 +52,13 @@ public class BinarySourceConnector extends SourceConnector {
      */
     @Override
     public void start(Map<String, String> props) {
+        use_dirwatcher = props.get(USE_DIRWATCHER);
         if(use_dirwatcher == null || use_dirwatcher.isEmpty())
             throw new ConnectException("missing use.java.dirwatcher");
+        schema_name = props.get(SCHEMA_NAME);
         if(schema_name == null || schema_name.isEmpty())
             throw new ConnectException("missing schema.name");
+        topic = props.get(TOPIC);
         if(topic == null || topic.isEmpty())
             throw new ConnectException("missing topic");
 
@@ -63,8 +66,10 @@ public class BinarySourceConnector extends SourceConnector {
             tmp_path = props.get(DIR_PATH);
             if(tmp_path == null || tmp_path.isEmpty())
                 throw new ConnectException("missing tmp.path");
+            check_dir_ms = props.get(CHCK_DIR_MS);
             if(check_dir_ms == null || check_dir_ms.isEmpty())
                 check_dir_ms = "1000";
+            filename_path = props.get(FILE_PATH);
             if(filename_path == null || filename_path.isEmpty())
                 filename_path = "";
         }
@@ -72,8 +77,10 @@ public class BinarySourceConnector extends SourceConnector {
             tmp_path = props.get(DIR_PATH);
             if(tmp_path == null || tmp_path.isEmpty())
                 tmp_path = "";
+            check_dir_ms = props.get(CHCK_DIR_MS);
             if(check_dir_ms == null || check_dir_ms.isEmpty())
                 check_dir_ms = "";
+            filename_path = props.get(FILE_PATH);
             if(filename_path == null || filename_path.isEmpty())
                 throw new ConnectException("missing filename.path");
         }
