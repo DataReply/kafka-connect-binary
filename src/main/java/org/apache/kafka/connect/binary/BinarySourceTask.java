@@ -105,7 +105,7 @@ public class BinarySourceTask extends SourceTask {
 
         if (use_dirwatcher == "true") {
             //consume here the pool
-            while (!((DirWatcher) task).getQueueFiles().isEmpty()) {
+            if (!((DirWatcher) task).getQueueFiles().isEmpty()) {
                 File file = ((DirWatcher) task).getQueueFiles().poll();
                 // creates the record
                 // no need to save offsets
