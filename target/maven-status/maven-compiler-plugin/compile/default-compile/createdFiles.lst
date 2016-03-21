@@ -1,0 +1,9 @@
+org/apache/kafka/connect/binary/utils/StringUtils.class
+org/apache/kafka/connect/binary/BinarySourceConnector$1.class
+org/apache/kafka/connect/binary/DirFilterWatcher.class
+org/apache/kafka/connect/binary/test/BinarySourceTaskTest.class
+org/apache/kafka/connect/binary/DirWatcher.class
+org/apache/kafka/connect/binary/BinarySourceConnector.class
+org/apache/kafka/connect/binary/utils/SchemaUtils$1.class
+org/apache/kafka/connect/binary/BinarySourceTask.class
+org/apache/kafka/connect/binary/utils/SchemaUtils.class

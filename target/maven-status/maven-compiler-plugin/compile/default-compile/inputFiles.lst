@@ -1,0 +1,7 @@
+/Users/Alex/Desktop/kafka-connect-binary/src/main/java/org/apache/kafka/connect/binary/BinarySourceConnector.java
+/Users/Alex/Desktop/kafka-connect-binary/src/main/java/org/apache/kafka/connect/binary/utils/SchemaUtils.java
+/Users/Alex/Desktop/kafka-connect-binary/src/main/java/org/apache/kafka/connect/binary/test/BinarySourceTaskTest.java
+/Users/Alex/Desktop/kafka-connect-binary/src/main/java/org/apache/kafka/connect/binary/BinarySourceTask.java
+/Users/Alex/Desktop/kafka-connect-binary/src/main/java/org/apache/kafka/connect/binary/DirFilterWatcher.java
+/Users/Alex/Desktop/kafka-connect-binary/src/main/java/org/apache/kafka/connect/binary/DirWatcher.java
+/Users/Alex/Desktop/kafka-connect-binary/src/main/java/org/apache/kafka/connect/binary/utils/StringUtils.java

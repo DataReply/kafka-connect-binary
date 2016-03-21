@@ -27,16 +27,21 @@ import java.util.*;
 public class BinarySourceTask extends SourceTask {
     private final static Logger log = LoggerFactory.getLogger(BinarySourceTask.class);
 
-    private String tmp_path;
+    public static final String FILENAME_FIELD = "file_binary";
+    public static final String READ = "read";
 
-    private TimerTask task;
+    private String tmp_path;
+    private boolean done;
+
     private static Schema schema = null;
     private String schemaName;
     private String topic;
     private String check_dir_ms;
-    private String filename_path;
+    private String filename_paths;
+    private Queue<String> files;
     private String use_dirwatcher;
 
+    Map<Map<String, String>, Map<String, Object>> offsets = new HashMap<>(0);
 
     @Override
     public String version() {
@@ -60,27 +65,22 @@ public class BinarySourceTask extends SourceTask {
         if(topic == null)
             throw new ConnectException("config topic null");
 
+
         if (use_dirwatcher == "true") {
             tmp_path = props.get(BinarySourceConnector.DIR_PATH);
             if(tmp_path == null)
                 throw new ConnectException("config tmp.path null");
             check_dir_ms = props.get(BinarySourceConnector.CHCK_DIR_MS);
 
-            task = new DirWatcher(tmp_path, "") {
-                protected void onChange(File file, String action ) {
-                    // here we code the action on a change
-                    System.out.println
-                            ( "File "+ file.getName() +" action: " + action );
-                }
-            };
-            Timer timer = new Timer();
-            timer.schedule( task , new Date(), Long.parseLong(check_dir_ms));
         }
         else if (use_dirwatcher == "false") {
-            filename_path = props.get(BinarySourceConnector.FILE_PATH);
-            if(filename_path == null || filename_path.isEmpty())
-                throw new ConnectException("missing filename.path");
+            filename_paths = props.get(BinarySourceConnector.FILE_PATHS);
+            if(filename_paths == null || filename_paths.isEmpty())
+                throw new ConnectException("missing filename.paths");
+
+            files = new LinkedList<>(Arrays.asList(filename_paths.split(",")));
         }
+
 
         log.trace("Creating schema");
         schema = SchemaBuilder
@@ -89,6 +89,9 @@ public class BinarySourceTask extends SourceTask {
                 .field("name", Schema.OPTIONAL_STRING_SCHEMA)
                 .field("binary", Schema.OPTIONAL_BYTES_SCHEMA)
                 .build();
+
+        loadOffsets();
+        done = false;
     }
 
 
@@ -105,21 +108,40 @@ public class BinarySourceTask extends SourceTask {
 
         if (use_dirwatcher == "true") {
             //consume here the pool
-            if (!((DirWatcher) task).getQueueFiles().isEmpty()) {
-                File file = ((DirWatcher) task).getQueueFiles().poll();
+            if (!BinarySourceConnector.getQueueFiles().isEmpty()) {
+                File file = BinarySourceConnector.getQueueFiles().poll();
                 // creates the record
                 // no need to save offsets
                 SourceRecord record = create_binary_record(file);
                 records.add(record);
             }
+            else {
+                stop();
+                return records;
+            }
         }
         else if (use_dirwatcher == "false") {
-            File file = new File(filename_path);
-            // creates the record
-            // no need to save offsets
-            SourceRecord record = create_binary_record(file);
-            records.add(record);
-            this.stop();
+
+            String file = null;
+            Map<String, Object> value = null;
+
+            do {
+                if (files.isEmpty()) {
+                    stop();
+                    return records;
+                }
+                file = files.poll();
+                value = offsets.get(offsetKey(file));
+            } while (value != null && ((Long) value.get(READ)) == 1);
+
+            if (!done) {
+                // creates the record
+                // no need to save offsets
+                SourceRecord record = create_binary_record(new File(file));
+                records.add(record);
+            }
+
+            stop(files.isEmpty());
         }
 
         return records;
@@ -149,7 +171,33 @@ public class BinarySourceTask extends SourceTask {
         messageStruct.put("binary", data);
         // creates the record
         // no need to save offsets
-        return new SourceRecord(Collections.singletonMap("file_binary", 0), Collections.singletonMap("0", 0), topic, messageStruct.schema(), messageStruct);
+        return new SourceRecord(offsetKey(file.getName()), offsetValue((long) 1), topic, messageStruct.schema(), messageStruct);
+    }
+
+
+    private Map<String, String> offsetKey(String partition) {
+        return Collections.singletonMap(FILENAME_FIELD, partition);
+    }
+
+
+    private Map<String, Object> offsetValue(Long pos) {
+        return Collections.singletonMap(READ, (Object) pos);
+    }
+
+
+    /**
+     * Loads the current saved offsets.
+     */
+    private void loadOffsets() {
+        List<Map<String, String>> partitions = new ArrayList<>();
+        for (String file : files) {
+            partitions.add(offsetKey(file));
+        }
+        try {
+            offsets.putAll(context.offsetStorageReader().offsets(partitions));
+        } catch (Exception nu) {
+            //nu.printStackTrace();
+        }
     }
 
 
@@ -158,8 +206,12 @@ public class BinarySourceTask extends SourceTask {
      */
     @Override
     public void stop() {
-        if (use_dirwatcher == "true")
-            task.cancel();
+        done = true;
+    }
+
+
+    public void stop(boolean stop) {
+        done = stop;
     }
 
 }

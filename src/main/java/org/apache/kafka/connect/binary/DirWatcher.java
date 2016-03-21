@@ -2,7 +2,6 @@ package org.apache.kafka.connect.binary;
 
 import java.util.*;
 import java.io.*;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 
 /**
@@ -17,7 +16,6 @@ public abstract class DirWatcher extends TimerTask {
     private File filesArray [];
     private HashMap dir = new HashMap();
     private DirFilterWatcher dfw;
-    private ConcurrentLinkedQueue<File> queue_files;
 
     public DirWatcher(String path) {
         this(path, "");
@@ -35,7 +33,6 @@ public abstract class DirWatcher extends TimerTask {
         dfw = new DirFilterWatcher(filter);
         filesArray = new File(path).listFiles(dfw);
 
-        queue_files = new ConcurrentLinkedQueue<File>();
         // transfer to the hashmap be used a reference and keep the
         // lastModfied value
         for(int i = 0; i < filesArray.length; i++) {
@@ -59,7 +56,6 @@ public abstract class DirWatcher extends TimerTask {
                 // new file
                 dir.put(filesArray[i], new Long(filesArray[i].lastModified()));
                 onChange(filesArray[i], "add");
-                queue_files.add(filesArray[i]);
             }
             else if (current.longValue() != filesArray[i].lastModified()){
                 // modified file
@@ -77,14 +73,6 @@ public abstract class DirWatcher extends TimerTask {
             dir.remove(deletedFile);
             onChange(deletedFile, "delete");
         }
-    }
-
-
-    /**
-     * Expose the files queue
-     */
-    public ConcurrentLinkedQueue<File> getQueueFiles() {
-        return queue_files;
     }
 
     protected abstract void onChange( File file, String action );

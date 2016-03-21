@@ -1,14 +1,15 @@
 package org.apache.kafka.connect.binary;
 
 import org.apache.kafka.common.utils.AppInfoParser;
+import org.apache.kafka.connect.binary.utils.StringUtils;
 import org.apache.kafka.connect.connector.Task;
 import org.apache.kafka.connect.errors.ConnectException;
 import org.apache.kafka.connect.source.SourceConnector;
+import org.apache.kafka.connect.util.ConnectorUtils;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.File;
+import java.util.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 
 /**
@@ -19,19 +20,24 @@ import java.util.Map;
  */
 public class BinarySourceConnector extends SourceConnector {
     public static final String USE_DIRWATCHER = "use.java.dirwatcher";
+
     public static final String DIR_PATH = "tmp.path";
     public static final String CHCK_DIR_MS = "check.dir.ms";
+
     public static final String SCHEMA_NAME = "schema.name";
     public static final String TOPIC = "topic";
-    public static final String FILE_PATH = "filename.path";
+
+    public static final String FILE_PATHS = "filename.paths";
 
     private String tmp_path;
     private String check_dir_ms;
     private String schema_name;
     private String topic;
     private String use_dirwatcher;
-    private String filename_path;
+    private String filename_paths;
 
+    private TimerTask task;
+    private static ConcurrentLinkedQueue<File> queue_files;
 
     /**
      * Get the version of this connector.
@@ -69,9 +75,22 @@ public class BinarySourceConnector extends SourceConnector {
             check_dir_ms = props.get(CHCK_DIR_MS);
             if(check_dir_ms == null || check_dir_ms.isEmpty())
                 check_dir_ms = "1000";
-            filename_path = props.get(FILE_PATH);
-            if(filename_path == null || filename_path.isEmpty())
-                filename_path = "";
+            filename_paths = props.get(FILE_PATHS);
+            if(filename_paths == null || filename_paths.isEmpty())
+                filename_paths = "";
+
+            queue_files = new ConcurrentLinkedQueue<File>();
+            task = new DirWatcher(tmp_path, "") {
+                protected void onChange(File file, String action) {
+                    // here we code the action on a change
+                    System.out.println( "File "+ file.getName() +" action: " + action );
+
+                    if(action == "add")
+                        queue_files.add(file);
+                }
+            };
+            Timer timer = new Timer();
+            timer.schedule(task , new Date(), Long.parseLong(check_dir_ms));
         }
         else if (use_dirwatcher == "false") {
             tmp_path = props.get(DIR_PATH);
@@ -80,9 +99,9 @@ public class BinarySourceConnector extends SourceConnector {
             check_dir_ms = props.get(CHCK_DIR_MS);
             if(check_dir_ms == null || check_dir_ms.isEmpty())
                 check_dir_ms = "";
-            filename_path = props.get(FILE_PATH);
-            if(filename_path == null || filename_path.isEmpty())
-                throw new ConnectException("missing filename.path");
+            filename_paths = props.get(FILE_PATHS);
+            if(filename_paths == null || filename_paths.isEmpty())
+                throw new ConnectException("missing filename.paths");
         }
 
     }
@@ -109,17 +128,29 @@ public class BinarySourceConnector extends SourceConnector {
     @Override
     public List<Map<String, String>> taskConfigs(int maxTasks) {
         ArrayList<Map<String, String>> configs = new ArrayList<>();
-        for(int i = 0; i < maxTasks; i++) {
+        List<String> files = Arrays.asList(filename_paths.split(","));
+        int numGroups = Math.min(files.size(), maxTasks);
+        List<List<String>> filesGrouped = ConnectorUtils.groupPartitions(files, numGroups);
+
+        for(int i = 0; i < numGroups; i++) {
             Map<String, String> config = new HashMap<>();
             config.put(USE_DIRWATCHER, use_dirwatcher);
             config.put(DIR_PATH, tmp_path);
             config.put(CHCK_DIR_MS, check_dir_ms);
-            config.put(FILE_PATH, filename_path);
+            config.put(FILE_PATHS, StringUtils.join(filesGrouped.get(i), ","));
             config.put(SCHEMA_NAME, schema_name);
             config.put(TOPIC, topic);
             configs.add(config);
         }
         return configs;
+    }
+
+
+    /**
+     * Expose the files queue
+     */
+    public static ConcurrentLinkedQueue<File> getQueueFiles() {
+        return queue_files;
     }
 
 
